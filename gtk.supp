@@ -1,0 +1,36 @@
+# Supressões para LeakSanitizer - GTK3 e dependências
+
+# Fontconfig - Sistema de fontes (todos os vazamentos reportados)
+leak:libfontconfig.so.1
+leak:FcConfigSubstitute
+leak:FcDefaultSubstitute
+leak:FcValueSave
+leak:FcFontRenderPrepare
+leak:FcLangSetCopy
+
+# GLib - Apenas funções de inicialização que sabidamente vazam
+leak:g_quark_init
+leak:g_type_register_static
+leak:g_type_class_ref
+leak:g_type_add_interface_static
+leak:g_param_spec_pool_new
+leak:g_signal_new
+leak:g_thread_proxy
+
+# GTK - Apenas inicialização
+leak:gtk_init_check
+leak:gtk_css_provider_load_from_data
+
+# Pango e Cairo - renderização de fontes
+leak:pango_font_map_load_fontset
+leak:cairo_region_create
+
+#leak:libgtk-3
+#leak:libgdk-3
+#leak:libglib-2.0
+## leak:libgobject-2.0
+#leak:libpango
+#leak:libfontconfig
+
+leak:g_malloc
+
