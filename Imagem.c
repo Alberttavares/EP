@@ -23,11 +23,45 @@ struct imagem {
  * @return Imagem* Ponteiro para a imagem alocada
  */
 Imagem *alocaImagem(int largura, int altura){
-    AVISO(Imagem.c : Ainda não implementei a função 'alocaImagem'); // Retire esssa mensagem ao implementar a fução
-    
-    // Com você :)
-    
-    return NULL;
+    // Detalhes da Função:
+    // Aloca a estrutura principal.
+    // Aloca o vetor de ponteiros para as linhas.
+    // Aloca cada linha individualmente.
+    // Libera o que já foi alocado para evitar vazamento.
+
+    if (largura <= 0 || altura <= 0) {
+        return NULL;
+    }
+
+    Imagem *img = (Imagem*) calloc(1, sizeof(Imagem));
+    if (!img) {
+        fprintf(stderr, "Erro fatal: Falha ao alocar estrutura Imagem\n");
+        exit(EXIT_FAILURE);
+    }
+
+    img->largura = largura;
+    img->altura = altura;
+    img->maxval = 255;
+
+    img->pixel = (Cor**) calloc(altura, sizeof(Cor*));
+    if (!img->pixel) {
+        fprintf(stderr, "Erro fatal: Falha ao alocar linhas da Imagem\n");
+        free(img);
+        exit(EXIT_FAILURE);
+    }
+
+    for (int i = 0; i < altura; i++) {
+        img->pixel[i] = (Cor*) calloc(largura, sizeof(Cor));
+        if (!img->pixel[i]) {
+            fprintf(stderr, "Erro fatal: Falha ao alocar colunas na linha %d\n", i);
+            for (int j = 0; j < i; j++) free(img->pixel[j]);
+            free(img->pixel);
+            free(img);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    return img;
 }
 
 /**
@@ -36,10 +70,22 @@ Imagem *alocaImagem(int largura, int altura){
  * @param img Ponteiro para a imagem a ser liberada.
  */
 void liberaImagem(Imagem *img){
-    AVISO(Imagem.c: Ainda não implementei a função 'liberaImagem'); //Retire esssa mensagem ao implementar a fução
+    // Detalhes da Função:
+    // Libera cada linha.
+    // Libera o vetor de ponteiros.
+    // Libera a estrutura principal.
 
-    // Com você :)
-   
+    if (img != NULL) {
+        if (img->pixel != NULL) {
+            for (int i = 0; i < img->altura; i++) {
+                if (img->pixel[i] != NULL) {
+                    free(img->pixel[i]);
+                }
+            }
+            free(img->pixel);
+        }
+        free(img);
+    }
 }
 
 /**
@@ -91,11 +137,19 @@ Cor obtemCorPixel(Imagem *img, int l, int c){
  * @return Imagem* Ponteiro para a imagem copiada
  */
 Imagem* copiaImagem(Imagem *origem){
-    AVISO(Imagem.c: Ainda não implementei a função 'copiaImagem'); //Retire esssa mensagem ao implementar a fução
+    // Detalhes da Função:
+    // Copia elemento por elemento
+    // Copia a memória da linha inteira de uma vez
 
-    // Lembre-se de verificar se a imagem de origem foi alocada (origem diferente de NULL).
-    // Com você :)
-    return NULL;
+    if (origem == NULL) return NULL;
+
+    Imagem *nova = alocaImagem(origem->largura, origem->altura);
+
+    for (int i = 0; i < origem->altura; i++) {
+        memcpy(nova->pixel[i], origem->pixel[i], origem->largura * sizeof(Cor));
+    }
+
+    return nova;
 }
 
 /**

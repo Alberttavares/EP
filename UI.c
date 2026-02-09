@@ -53,6 +53,30 @@ GtkWidget *itemEditarDesfazer;
 GtkWidget *itemArquivoSalvar;
 GtkWidget *itemEditarImagemOriginal;
 
+/**
+ * @brief Cria uma cópia de segurança da imagem atual e a empilha.
+ * * @note FUNÇÃO AUXILIAR :
+ * Criei essa função para centralizar a lógica de salvamento de estado,
+ * para evitar redundância e replicação de código.
+ * Ela evita a repetição do bloco de verificação/cópia/empilhamento em 
+ * todos os callbacks de filtros.
+ */
+
+static void salvarEstadoAtual() {
+    // Detalhes da Função:
+    // Verifica se a pilha de desfazer existe
+    // Cria uma cópia da imagem atual e a empilha.
+
+    if (imagemAtual && pilhaDesfazer) {
+        Imagem *imagemDeBackup = copiaImagem(imagemAtual);
+        
+        if (imagemDeBackup) {
+            pushPilha(pilhaDesfazer, imagemDeBackup);
+            gtk_widget_set_sensitive(itemEditarDesfazer, TRUE);
+        }
+    }
+}
+
 void atualizaDisplay() {
     if (!imagemAtual) {
         ERRO("Nenhuma imagem para exibir");
@@ -276,11 +300,27 @@ void sairCallback(GtkWidget *widget, gpointer data) {
 
 void desfazerCallback(GtkWidget *widget, gpointer data) {
 #if ETAPA >= 3
-    AVISO("UI.c: Não inclui uma cópia da imagem atual na pilha de desfazer na função 'desfazerCallback'");
+    // Detalhes da Função:
+    // Recupera o topo da pilha.
+    // Libera a imagem atual.
+    // Copia a imagem do topo para imagemAtual.
+    // Fazemos uma cópia porque o popPilha vai liberar a memória da imagem na pilha.
+    // Remove o topo da pilha
+    // Atualiza a tela.
+
     if (pilhaDesfazer && !pilhaVazia(pilhaDesfazer)) {
-        // Com você :)
+        Imagem *anterior = topPilha(pilhaDesfazer);
         
-        atualizaDisplay();
+        if (anterior) {
+            if (imagemAtual) {
+                liberaImagem(imagemAtual);
+            }
+            
+            imagemAtual = copiaImagem(anterior);
+
+            popPilha(pilhaDesfazer);
+            atualizaDisplay();
+        }
     }
     
 #endif
@@ -290,9 +330,7 @@ void filtroEscalaCinzaCallback(GtkWidget *widget, gpointer data) {
     if (!imagemAtual)
         return;
 #if ETAPA >= 3
-    AVISO("UI.c: Não inclui uma cópia da imagem atual na pilha de desfazer na função 'filtroEscalaCinzaCallback'");
-    // Com você :)
-
+    salvarEstadoAtual();
 #endif
     escalaDeCinzaImagem(imagemAtual);
     atualizaDisplay();
@@ -302,9 +340,7 @@ void deteccaoBordasLaplaceCallback(GtkWidget *widget, gpointer data){
     if (!imagemAtual)
         return;
 #if ETAPA >= 3
-    AVISO("UI.c: Não inclui uma cópia da imagem atual na pilha de desfazer na função 'deteccaoBordasLaplaceCallback'");
-    // Com você :)
-
+    salvarEstadoAtual();
 #endif
     deteccaoBordasLaplace(imagemAtual);
     atualizaDisplay();
@@ -314,9 +350,7 @@ void filtroSobelCallback(GtkWidget *widget, gpointer data){
     if (!imagemAtual)
         return;
 #if ETAPA >= 3
-    AVISO("UI.c: Não inclui uma cópia da imagem atual na pilha de desfazer na função 'filtroSobelCallback'");
-    // Com você :)
-
+    salvarEstadoAtual();
 #endif
     filtroSobel(imagemAtual);
     atualizaDisplay();
@@ -326,9 +360,7 @@ void meuFiltroCallback(GtkWidget *widget, gpointer data){
     if (!imagemAtual)
         return;
 #if ETAPA >= 3
-    AVISO("UI.c: Não inclui uma cópia da imagem atual na pilha de desfazer na função 'meuFiltroCallback'");
-    // Com você :)
-
+    salvarEstadoAtual();
 #endif
     meuFiltro(imagemAtual);
     atualizaDisplay();
@@ -338,9 +370,7 @@ void imagemOriginalCallback(GtkWidget *widget, gpointer data) {
     if (!imagemOriginal)
         return;
 #if ETAPA >= 3
-    AVISO("UI.c: Não inclui uma cópia da imagem atual na pilha de desfazer na função 'imagemOriginalCallback'");
-    // Com você :)
-
+    salvarEstadoAtual();
 #endif
     // Libera a imagem atual antes de copiar
     if (imagemAtual) {
@@ -387,9 +417,7 @@ void aplicarAlteracoes() {
     if(!imagemPreVisualizacao)
         return;
 #if ETAPA >= 3
-    AVISO("UI.c: Não inclui uma cópia da imagem atual na pilha de desfazer na função 'aplicarAlteracoes'");
-    // Com você :)
-
+    salvarEstadoAtual();
 #endif
     liberaImagem(imagemAtual);
     imagemAtual = copiaImagem(imagemPreVisualizacao);
@@ -539,12 +567,40 @@ void previewTrocaCor(GtkSpinButton *sb, gpointer data) {
     int bn = corNova.blue * 255;
 
 #if ETAPA >= 6
-    AVISO("UI.c: Ainda não gerei a lista de posições que devem ser alteradas na função 'previewTrocaCor'");
-    // Lembre-se que se a tolerância for zero, você não deve liberar a lista, pois ela é interna à árvore.
-    // Caso contário, se a tolerância for maior que zero, você deve liberar a lista ao final.
+    // Detalhes da continuação, seguindo o padrão de cima:
 
-    // Com você :)
+    // Define a cor alvo (original) que queremos substituir
+    Cor corParaBuscar = {ajustaCor(r0), ajustaCor(g0), ajustaCor(b0)};
     
+    // Define a nova cor que será pintada
+    Cor corSubstituta = {ajustaCor(rn), ajustaCor(gn), ajustaCor(bn)};
+
+    // Busca na árvore AVL todas as ocorrências da corAlvo (respeitando a tolerância)
+    Lista *listaDeOcorrencias = buscaArvore(arvoreCores, corParaBuscar, tolerancia);
+
+    // Verificação booleana concisa
+    if (listaDeOcorrencias && !listaVazia(listaDeOcorrencias)) {
+        No *noAtual = listaDeOcorrencias->inicio;
+        
+        // Percorre a lista de posições encontradas
+        while (noAtual) {
+            // Pinta o pixel na imagem de pré-visualização
+            recolorePixel(imagemPreVisualizacao, 
+                          noAtual->pos.linha, 
+                          noAtual->pos.coluna, 
+                          corSubstituta);
+            
+            noAtual = noAtual->proximo;
+        }
+
+        // Gerenciamento de Memória da Lista
+        // Se a tolerância for > 0, a função buscaArvore criou uma nova listaque precisa ser liberada.
+        // Se a tolerância for == 0, ela retornou um ponteiro direto para a lista interna do nó da árvore,
+        // então não podemos liberar a lista.
+        if (tolerancia > 0) {
+            liberaLista(listaDeOcorrencias);
+        }
+    }
 #endif
     if (pixbufPreVisualizacao)
         g_clear_object(&pixbufPreVisualizacao);

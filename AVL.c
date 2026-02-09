@@ -50,12 +50,27 @@ NoBST *criaNo(Cor cor, Posicao p) {
  * @return Arvore* Ponteiro para a árvore criada
  */
 Arvore *criaArvore(Imagem *img) {
+    // Detalhes da Função:
+    // Percorre cada pixel da imagem e insere na árvore
     if(img == NULL) {
         ERRO("Imagem inválida para criação da árvore.");
         return NULL;
     }
-    AVISO(AVL.c : Ainda não implementei a função 'criaArvore'); // Retire esssa mensagem ao implementar a fução
+    
     Arvore *arvore = mallocSafe(sizeof(Arvore));
+    arvore->raiz = NULL;
+    arvore->numeroNos = 0;
+
+    int altura = obtemAltura(img);
+    int largura = obtemLargura(img);
+
+    for (int y = 0; y < altura; y++) {
+        for (int x = 0; x < largura; x++) {
+            Cor c = obtemCorPixel(img, y, x);
+            Posicao p = {y, x};
+            insereArvore(arvore, c, p);
+        }
+    }
     
     return arvore;
 }
@@ -68,8 +83,21 @@ Arvore *criaArvore(Imagem *img) {
  * @param raiz Ponteiro para o nó raiz
  */
 void liberaNosArvore(NoBST *raiz){
-    AVISO(AVL.c : Ainda não implementei a função 'liberaNosArvore'); // Retire esssa mensagem ao implementar a fução
-    
+    // Detalhes da Função;
+    // libera filhos primeiro.
+    // Libera a lista de ocorrências do nó.
+    // Libera o nó.
+
+    if (raiz == NULL) return;
+
+    liberaNosArvore(raiz->esq);
+    liberaNosArvore(raiz->dir);
+
+    if (raiz->ocorrencias != NULL) {
+        liberaLista(raiz->ocorrencias);
+    }
+
+    free(raiz);    
 }
 
 /**
@@ -163,18 +191,51 @@ NoBST *insereNo(NoBST *raiz, Cor cor, Posicao p, bool *novoNoInserido) {
         *novoNoInserido = true;
         return criaNo(cor, p);
     }
+    // Detalhes da Continuação:
+    // Atualiza altura do nó ancestral
+    // Obtém o fator de balanceamento que no caso é "fb".
+    // Se desbalanceado, aplica rotações nos 4 casos.
 
-    // Lembre-se que se a cor já existir na árvore, você deve apenas
-    // adicionar a nova posição à lista de ocorrências do nó existente.
-    // Use a função comparaCores (Cor.c) para comparar as cores.
-    // Além disso, após a inserção, você deve atualizar as alturas e
-    // verificar se é necessário fazer rotações para manter a árvore balanceada.
+    int compara = comparaCores(cor, raiz->pixel);
 
-    AVISO(AVL.c : Ainda não implementei a função 'insereNo'); // Retire esssa mensagem ao implementar a fução
+    if (compara < 0) {
+        raiz->esq = insereNo(raiz->esq, cor, p, novoNoInserido);
+    } 
+    else if (compara > 0) {
+        raiz->dir = insereNo(raiz->dir, cor, p, novoNoInserido);
+    } 
+    else {
+        insereLista(raiz->ocorrencias, p);
+        *novoNoInserido = false; // Não aumentou o número de nós da árvore
+        return raiz;
+    }
 
-    // Com você :)
+    raiz->altura = 1 + max(altura(raiz->esq), altura(raiz->dir));
 
-    
+    int fb = fatorBalanceamento(raiz);
+
+    // Caso Esquerda-Esquerda
+    if (fb > 1 && comparaCores(cor, raiz->esq->pixel) < 0) {
+        return rotacaoDireita(raiz);
+    }
+
+    // Caso Direita-Direita
+    if (fb < -1 && comparaCores(cor, raiz->dir->pixel) > 0) {
+        return rotacaoEsquerda(raiz);
+    }
+
+    // Caso Esquerda-Direita
+    if (fb > 1 && comparaCores(cor, raiz->esq->pixel) > 0) {
+        raiz->esq = rotacaoEsquerda(raiz->esq);
+        return rotacaoDireita(raiz);
+    }
+
+    // Caso Direita-Esquerda
+    if (fb < -1 && comparaCores(cor, raiz->dir->pixel) < 0) {
+        raiz->dir = rotacaoDireita(raiz->dir);
+        return rotacaoEsquerda(raiz);
+    }
+
     return raiz;
 }
 
@@ -207,8 +268,24 @@ Lista* buscaCorExata (NoBST* raiz, Cor cor) {
 
     // Use a função comparaCores (Cor.c) para comparar as cores.
 
-    AVISO(AVL.c : Ainda não implementei a função 'buscaCorExata'); // Retire esssa mensagem ao implementar a fução
-    // Com você :)
+    //Detalhes da Continuação:
+    // Se achou a cor, retorna a lista de ocorrências do nó.
+    // Se < 0 busca na esquerda.
+    // Se > 0 busca na direita.
+
+    if (raiz == NULL) return NULL;
+
+    int compara = comparaCores(cor, raiz->pixel);
+
+    if (compara == 0) {
+        return raiz->ocorrencias;
+    } 
+    else if (compara < 0) {
+        return buscaCorExata(raiz->esq, cor);
+    } 
+    else {
+        return buscaCorExata(raiz->dir, cor);
+    }
     return NULL;
 }
 
@@ -225,9 +302,24 @@ void buscaCorAproximada(NoBST* raiz, Cor cor, int tolerancia, Lista **resultado)
     // está dentro da tolerância, ou seja, se distanciaCores(raiz->pixel, cor) <= tolerancia.
     // Se estiver, você deve adicionar todas as posições
     // da lista de ocorrências do nó à lista de resultado (use a função appendLista).
+    
+    // Detalhes da Continuação:
+    // Se a cor do nó estiver dentro da tolerância, adiciona a lista de ocorrências do nó.
+    // Se *resultado ainda não existe, cria a lista. 
+    // Adiciona todas as ocorrências deste nó à lista resultado
+    // Continua a busca nas subárvores esquerda e direita.
 
-    AVISO(AVL.c : Ainda não implementei a função 'buscaCorAproximada'); // Retire esssa mensagem ao implementar a fução
-    // Com você :)
+    if (raiz == NULL) return;
+
+    if (distanciaCores(raiz->pixel, cor) <= tolerancia) {
+        if (*resultado == NULL) {
+            *resultado = criaLista();
+        }
+        appendLista(*resultado, raiz->ocorrencias);
+    }
+
+    buscaCorAproximada(raiz->esq, cor, tolerancia, resultado);
+    buscaCorAproximada(raiz->dir, cor, tolerancia, resultado);
     
 }
 
@@ -250,10 +342,16 @@ Lista *buscaArvore(Arvore *arvore, Cor cor, int tolerancia) {
         return NULL;
     }
 
-    AVISO(AVL.c : Ainda não implementei a função 'buscaArvore'); // Retire esssa mensagem ao implementar a fução
-
-    // Com você :)
-
+    // Detalhes da Continuação:
+    // Busca Exata: Retorna ponteiro direto para a lista do nó (rápido)
+    // Busca Aproximada: Cria uma nova lista.
+    if (tolerancia == 0) {
+        return buscaCorExata(arvore->raiz, cor);
+    } else {
+        Lista *resultado = NULL;
+        buscaCorAproximada(arvore->raiz, cor, tolerancia, &resultado);
+        return resultado;
+    }
     return NULL;
 }
 

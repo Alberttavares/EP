@@ -22,11 +22,16 @@ Lista *criaLista() {
  * @param lista Ponteiro para a lista a ser liberada
  */
 void liberaLista(Lista* lista) {
-    AVISO(Lista.c : Ainda não implementei a função 'liberaLista'); // Retire esssa mensagem ao implementar a fução
+    if (lista == NULL) return;
 
-    // Com você :)
+    No *atual = lista->inicio;
+    while (atual != NULL) {
+        No *prox = atual->proximo;
+        free(atual);
+        atual = prox;
+    }
 
-    
+    free(lista);
 }
 
 /**
@@ -36,11 +41,39 @@ void liberaLista(Lista* lista) {
  * @param pos Posição a ser inserida
  */
 void insereLista(Lista *lista, Posicao pos) {
-    AVISO(Lista.c : Ainda não implementei a função 'insereLista'); // Retire esssa mensagem ao implementar a fução
+    // Detalhes da Função:
+    // Aloca o nó usando mallocSafe.
+    // Lógica de inserção no fim.
+    // Primeiro caso: lista estava vazia.
+    // Segundo caso: lista já tinha elementos.
+    // último caso: fim nulo mas inicio nao.
 
-    // Com você :)
+    if (lista == NULL) {
+        ERRO(insereLista: Lista invalida (NULL));
+        return;
+    }
 
+    No *novoNo = (No *) mallocSafe(sizeof(No));
     
+    novoNo->pos = pos;
+    novoNo->proximo = NULL;
+
+    if (lista->inicio == NULL) {
+        lista->inicio = novoNo;
+        lista->fim = novoNo;
+    } else {
+        if (lista->fim != NULL) {
+            lista->fim->proximo = novoNo;
+            lista->fim = novoNo;
+        } else {
+            No *aux = lista->inicio;
+            while(aux->proximo != NULL) aux = aux->proximo;
+            aux->proximo = novoNo;
+            lista->fim = novoNo;
+        }
+    }
+
+    lista->tamanho++;
 }
 
 /**
@@ -50,11 +83,19 @@ void insereLista(Lista *lista, Posicao pos) {
  * @param origem Lista de origem
  */
 void appendLista(Lista *destino, const Lista *origem){
-    AVISO(Lista.c : Ainda não implementei a função 'appendLista'); // Retire esssa mensagem ao implementar a fução
+    // Detalhes da Função:
+    // Ela copia os elementos da lista origem para o final da lista destino
+    // Reutilizei a insereLista para facilitar.
 
-    //Com você :)
+    if (destino == NULL || origem == NULL || origem->inicio == NULL) {
+        return;
+    }
 
-    
+    No *atual = origem->inicio;
+    while (atual != NULL) {
+        insereLista(destino, atual->pos);
+        atual = atual->proximo;
+    }
 }
 
 /**
